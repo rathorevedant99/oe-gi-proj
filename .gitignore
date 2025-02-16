@@ -1,3 +1,7 @@
+docs_for_rag/nethackwiki.xml
+docs_for_rag/nethack_wiki_store.pkl
+no_rag_results/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -1,6 +1,3 @@
-docs_for_rag/nethackwiki.xml
-docs_for_rag/nethack_wiki_store.pkl
-docs_for_rag/nethack_wiki_faiss.index
 no_rag_results/
 tw_games/
 

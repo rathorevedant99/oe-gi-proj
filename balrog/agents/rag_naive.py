@@ -2,7 +2,7 @@ import copy
 import re
 
 from balrog.agents.base import BaseAgent
-from agent_rag_utils import *
+from balrog.agents.agent_rag_utils import *
 
 
 class RAGNaiveAgent(BaseAgent):

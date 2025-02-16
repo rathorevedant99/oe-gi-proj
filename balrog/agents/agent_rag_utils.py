@@ -5,77 +5,86 @@ import numpy as np
 import pickle
 import os
 
-def parse_mediawiki_xml(xml_path):
-    """Parses MediaWiki XML and extracts full text per page."""
-    ns = {"mw": "http://www.mediawiki.org/xml/export-0.10/"}
-    tree = ET.parse(xml_path)
-    root = tree.getroot()
-
-    pages = root.findall(".//mw:page", namespaces=ns)
-    extracted = []
-
-    for page in pages:
-        title = page.find("mw:title", namespaces=ns).text
-        revision = page.find(".//mw:revision/mw:text", namespaces=ns)
-
-        if revision is not None and revision.text:
-            text_content = revision.text.strip()
-            extracted.append((title, text_content))
-
-    # print(f"Extracted {len(extracted)} pages.")
-    return extracted
-
-
-def build_faiss_index(data, model, faiss_index_path=None, storage_path=None):
-    """Encodes pages with embeddings and stores in FAISS HNSW index along with full text."""
-    titles, texts = zip(*data)  # Extract titles and content
+class NethackWikiSearch:
+    """Handles parsing, indexing, and searching MediaWiki XML dumps with FAISS."""
     
-    # Convert text into embeddings
-    embeddings = model.encode(texts, convert_to_numpy=True)
-    faiss.normalize_L2(embeddings)  # Normalize for cosine similarity
+    def __init__(self, config):
+        self.model = SentenceTransformer(config.embedding_model)
+        self.wiki_path = wiki_path
+        self.faiss_index_path = faiss_index_path
+        self.storage_path = storage_path
+        self.index = None
+        self.doc_store = None
+        self.top_k = 5
 
-    # Use HNSW for scalable nearest-neighbor search
-    dim = embeddings.shape[1]
-    index = faiss.IndexHNSWFlat(dim, 32)  # 32 neighbors in HNSW graph
-    index.hnsw.efConstruction = 128  # Better recall
-    index.add(embeddings)
+    def __parse_xml(self):
+        """Parses MediaWiki XML and extracts full text per page."""
+        ns = {"mw": "http://www.mediawiki.org/xml/export-0.10/"}
+        tree = ET.parse(self.wiki_path)
+        root = tree.getroot()
 
-    # Store full content alongside titles
-    doc_store = [{"title": t, "content": c} for t, c in zip(titles, texts)]
+        pages = root.findall(".//mw:page", namespaces=ns)
+        extracted = []
 
-    # Save FAISS index and document store
-    faiss.write_index(index, faiss_index_path)
-    with open(storage_path, "wb") as f:
-        pickle.dump(doc_store, f)
+        for page in pages:
+            title = page.find("mw:title", namespaces=ns).text
+            revision = page.find(".//mw:revision/mw:text", namespaces=ns)
 
-    print(f"FAISS index and document store saved.")
-    return index, doc_store
+            if revision is not None and revision.text:
+                text_content = revision.text.strip()
+                extracted.append((title, text_content))
 
-
-def load_faiss_index(faiss_index_path, storage_path):
-    """Loads the FAISS index and document store if they exist."""
-    if os.path.exists(faiss_index_path) and os.path.exists(storage_path):
-        index = faiss.read_index(faiss_index_path)
-        with open(storage_path, "rb") as f:
-            doc_store = pickle.load(f)  # Load stored titles and texts
-        print("Loaded FAISS index and document store from disk.")
-        return index, doc_store
-    else:
-        print("No saved index found. Build it first.")
-        return None, None
+        return extracted
     
 
-def search_faiss(index, doc_store, query, model, top_k=5):
-    """Search FAISS index for similar documents and return titles + content."""
-    query_embedding = model.encode([query], convert_to_numpy=True)
-    faiss.normalize_L2(query_embedding)  # Normalize query
+    def __build_index(self):
+        """Encodes pages with embeddings and stores in FAISS HNSW index along with full text."""
+        data = self.__parse_xml()
+        titles, texts = zip(*data)  # Extract titles and content
+        
+        # Convert text into embeddings
+        embeddings = self.model.encode(texts, convert_to_numpy=True)
+        faiss.normalize_L2(embeddings)  # Normalize for cosine similarity
 
-    distances, indices = index.search(query_embedding, top_k)
+        # Use HNSW for scalable nearest-neighbor search
+        dim = embeddings.shape[1]
+        self.index = faiss.IndexHNSWFlat(dim, 32)
+        self.index.hnsw.efConstruction = 128  # Better recall
+        self.index.add(embeddings)
 
-    # Retrieve the titles and content for the top-k results
-    results = []
-    for idx in indices[0]:
-        doc = doc_store[idx]  # Retrieve from stored dictionary
-        results.append((doc["title"], doc["content"]))
+        # Store full content alongside titles
+        self.doc_store = [{"title": t, "content": c} for t, c in zip(titles, texts)]
 
-    return results
+        # Save FAISS index and document store
+        faiss.write_index(self.index, self.faiss_index_path)
+        with open(self.storage_path, "wb") as f:
+            pickle.dump(self.doc_store, f)
+
+        print("FAISS index and document store saved.")
+
+
+    def load_index(self):
+        """Loads the FAISS index and document store if they exist."""
+        if not (os.path.exists(self.faiss_index_path) and os.path.exists(self.storage_path)):
+            print("No saved index found. Building the index.")
+            self.__build_index()
+
+        self.index = faiss.read_index(self.faiss_index_path)
+        with open(self.storage_path, "rb") as f:
+            self.doc_store = pickle.load(f)
+
+        return print("Loaded FAISS index and document store from disk.")
+
+
+    def search(self, query):
+        """Search FAISS index for similar documents and return titles + content."""
+        if self.index is None or self.doc_store is None:
+            print("Index not loaded. Load or build it first.")
+            return []
+
+        query_embedding = self.model.encode([query], convert_to_numpy=True)
+        faiss.normalize_L2(query_embedding)  # Normalize query
+
+        distances, indices = self.index.search(query_embedding, self.top_k)
+
+        return [(self.doc_store[idx]["title"], self.doc_store[idx]["content"]) for idx in indices[0]]

@@ -10,12 +10,12 @@ class NethackWikiSearch:
     
     def __init__(self, config):
         self.model = SentenceTransformer(config.embedding_model)
-        self.wiki_path = wiki_path
-        self.faiss_index_path = faiss_index_path
-        self.storage_path = storage_path
+        self.wiki_path = config.nethack_wiki
+        self.faiss_index_path = config.nethack_wiki_index
+        self.storage_path = config.nethack_wiki_store
         self.index = None
         self.doc_store = None
-        self.top_k = 5
+        self.top_k = config.top_k
 
     def __parse_xml(self):
         """Parses MediaWiki XML and extracts full text per page."""

@@ -6,6 +6,12 @@ agent:
   max_cot_history: 1     # Maximum number of chain-of-thought steps to keep in history (if using 'cot' type of agent)
   max_icl_history: 1000   # Maximum number of ICL steps to keep in history (if using 'few_shot' type of agent)
   cache_icl: False
+  embedding_model: "all-MiniLM-L6-v2" # Model to embed RAG query
+  nethack_wiki: "/homes/53/fpinto/BALROG/balrog/docs_for_rag/nethackwiki.xml" # Path to the Nethack wiki for RAG
+  nethack_wiki_index: "/homes/53/fpinto/BALROG/balrog/docs_for_rag/nethackwiki_faiss.index" # Path to the faiss index for RAG
+  nethack_wiki_store: "/homes/53/fpinto/BALROG/balrog/docs_for_rag/nethackwiki_store.pkl" # Path to the faiss store for RAG
+  top_k: 5               # Number of docs to return from the RAG
+
 
 eval:
   output_dir: "results"  # Directory where evaluation results will be saved

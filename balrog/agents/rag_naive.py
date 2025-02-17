@@ -29,13 +29,10 @@ class RAGNaiveAgent(BaseAgent):
             self.prompt_builder.update_action(prev_action)
 
         query = obs["text"]["short_term_context"]  # Use short-term context as the query
-        retrieved_docs = self.retriever(query)
+        retrieved_docs = self.retriever.search(query)
+        print("\n".join([f"{title}: {content[:100]}" for title, content in retrieved_docs])) # Look at these later in eval
 
-        retrieved_texts = "\n".join([f"{title}: {content}" for title, content in retrieved_docs]) # Format retrieved documents
-
-        obs["text"]["long_term_context"] = retrieved_texts # Inject retrieved context into the observation
-
-        self.prompt_builder.update_observation(obs)
+        self.prompt_builder.update_observation(obs) # Retrieved docs are not part of the observation (yet?)
 
         messages = self.prompt_builder.get_prompt()
 

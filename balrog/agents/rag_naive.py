@@ -28,9 +28,10 @@ class RAGNaiveAgent(BaseAgent):
         if prev_action:
             self.prompt_builder.update_action(prev_action)
 
-        query = obs["text"]["short_term_context"]  # Use short-term context as the query
+        query = obs["text"]["short_term_context"]  # Use short-term context as the query. In practise this is not good idea
         retrieved_docs = self.retriever.search(query)
-        print("\n".join([f"{title}: {content[:100]}" for title, content in retrieved_docs])) # Look at these later in eval
+        print(query) # Look at these later in eval
+        print("\n".join([f"{title}: {content[:1]}" for title, content in retrieved_docs])) # Retrieved titles, look at these later in eval
 
         self.prompt_builder.update_observation(obs) # Retrieved docs are not part of the observation (yet?)
 
@@ -45,7 +46,7 @@ You always have to output one of the above actions at a time and no other text. 
 
         # Format retrieved documents nicely
         retrieved_text = "\n".join(
-            [f"Title: {doc[0]}\nContent: {doc[1]}\n{'-'*40}" for doc in retrieved_docs]
+            [f"Title: {doc[0]}\nContent: {doc[1][:500]}\n{'-'*40}" for doc in retrieved_docs] # Give first 500 chars of each doc for now
         )
 
         rag_instruction = f"""

@@ -33,7 +33,7 @@ eval:
 
 client:
   client_name: openai           # LLM client to use (e.g., 'openai', 'gemini', 'claude')
-  model_id: "meta-llama/Llama-3.1-8B-Instruct"             # Model identifier (e.g., 'gpt-4', 'gpt-3.5-turbo')
+  model_id: "meta-llama/Llama-3.2-1B-Instruct"             # Model identifier (e.g., 'gpt-4', 'gpt-3.5-turbo')
   base_url: http://localhost:8080/v1   # Base URL for the API (if using a local server)
   generate_kwargs:
     temperature: 0.0            # Sampling temperature; 0.0 makes the output deterministic
